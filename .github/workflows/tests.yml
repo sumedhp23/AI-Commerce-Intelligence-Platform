@@ -1,0 +1,56 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - main
+      - "stage-*"
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  python-tests:
+    name: python-tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ai_commerce_intelligence
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ai_commerce_intelligence"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install project
+        run: python -m pip install --upgrade pip && pip install -e ".[dev]"
+
+      - name: Apply commerce schema
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d ai_commerce_intelligence -f data-platform/schema/commerce_schema.sql
+
+      - name: Run tests
+        env:
+          POSTGRES_DB: ai_commerce_intelligence
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: "5432"
+        run: pytest -q
