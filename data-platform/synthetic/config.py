@@ -28,6 +28,7 @@ class GeneratorConfig:
     search_events_per_session: int = 2
     click_events_per_session: int = 2
     impressions_per_session: int = 3
+    reviews_per_customer: int = 1
 
     @property
     def total_products(self) -> int:
@@ -112,6 +113,13 @@ class GeneratorConfig:
         return (
             self.total_sessions
             * self.impressions_per_session
+        )
+
+    @property
+    def total_reviews(self) -> int:
+        return (
+            self.total_customers
+            * self.reviews_per_customer
         )
 
     @property
