@@ -24,6 +24,10 @@ class GeneratorConfig:
     campaigns_per_organization: int = 5
     promotions_per_organization: int = 5
     coupons_per_promotion: int = 3
+    sessions_per_customer: int = 1
+    search_events_per_session: int = 2
+    click_events_per_session: int = 2
+    impressions_per_session: int = 3
 
     @property
     def total_products(self) -> int:
@@ -80,6 +84,34 @@ class GeneratorConfig:
         return (
             self.total_promotions
             * self.coupons_per_promotion
+        )
+
+    @property
+    def total_sessions(self) -> int:
+        return (
+            self.total_customers
+            * self.sessions_per_customer
+        )
+
+    @property
+    def total_search_events(self) -> int:
+        return (
+            self.total_sessions
+            * self.search_events_per_session
+        )
+
+    @property
+    def total_click_events(self) -> int:
+        return (
+            self.total_sessions
+            * self.click_events_per_session
+        )
+
+    @property
+    def total_impressions(self) -> int:
+        return (
+            self.total_sessions
+            * self.impressions_per_session
         )
 
     @property
