@@ -10,11 +10,10 @@ from config import GeneratorConfig
 
 class SyntheticCommerceGenerator:
     """
-    Deterministic synthetic commerce data generator.
+    Deterministic synthetic generator for schema-aligned master data.
 
-    Stage 1 initially focuses on generating clean canonical
-    entities in memory. Database persistence will be added
-    after the generator contract is validated.
+    This slice generates reference/master entities only.
+    Transactional data is intentionally handled separately.
     """
 
     def __init__(self, config: GeneratorConfig | None = None) -> None:
@@ -22,22 +21,60 @@ class SyntheticCommerceGenerator:
         self.random = random.Random(self.config.seed)
 
     def _uuid(self) -> str:
-        """Generate a deterministic UUID from the generator RNG."""
         return str(uuid.UUID(int=self.random.getrandbits(128)))
 
     def generate_organizations(self) -> list[dict[str, Any]]:
         organizations = []
 
+        industries = [
+            "E_COMMERCE",
+            "QUICK_COMMERCE",
+            "FOOD_DELIVERY",
+        ]
+
         for index in range(1, self.config.organizations + 1):
             organizations.append(
                 {
-                    "id": self._uuid(),
+                    "organization_id": self._uuid(),
                     "name": f"Organization {index}",
-                    "external_id": f"ORG-{index:04d}",
+                    "industry": industries[(index - 1) % len(industries)],
+                    "country_code": "IN",
                 }
             )
 
         return organizations
+
+    def generate_customer_segments(
+        self,
+        organizations: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        segments = []
+
+        segment_names = [
+            "NEW",
+            "REGULAR",
+            "LOYAL",
+            "HIGH_VALUE",
+            "AT_RISK",
+        ]
+
+        for organization in organizations:
+            for index in range(
+                1,
+                self.config.customer_segments_per_organization + 1,
+            ):
+                segments.append(
+                    {
+                        "customer_segment_id": self._uuid(),
+                        "organization_id": organization["organization_id"],
+                        "name": segment_names[(index - 1) % len(segment_names)],
+                        "description": (
+                            f"Synthetic customer segment {index}"
+                        ),
+                    }
+                )
+
+        return segments
 
     def generate_brands(
         self,
@@ -46,15 +83,15 @@ class SyntheticCommerceGenerator:
         brands = []
 
         for organization in organizations:
-            for index in range(1, self.config.brands_per_organization + 1):
+            for index in range(
+                1,
+                self.config.brands_per_organization + 1,
+            ):
                 brands.append(
                     {
-                        "id": self._uuid(),
-                        "organization_id": organization["id"],
+                        "brand_id": self._uuid(),
+                        "organization_id": organization["organization_id"],
                         "name": f"Brand {index}",
-                        "external_id": (
-                            f"{organization['external_id']}-BR-{index:04d}"
-                        ),
                     }
                 )
 
@@ -67,11 +104,14 @@ class SyntheticCommerceGenerator:
         categories = []
 
         for organization in organizations:
-            for index in range(1, self.config.categories_per_organization + 1):
+            for index in range(
+                1,
+                self.config.categories_per_organization + 1,
+            ):
                 categories.append(
                     {
-                        "id": self._uuid(),
-                        "organization_id": organization["id"],
+                        "category_id": self._uuid(),
+                        "organization_id": organization["organization_id"],
                         "parent_category_id": None,
                         "name": f"Category {index}",
                     }
@@ -86,15 +126,17 @@ class SyntheticCommerceGenerator:
         suppliers = []
 
         for organization in organizations:
-            for index in range(1, self.config.suppliers_per_organization + 1):
+            for index in range(
+                1,
+                self.config.suppliers_per_organization + 1,
+            ):
                 suppliers.append(
                     {
-                        "id": self._uuid(),
-                        "organization_id": organization["id"],
+                        "supplier_id": self._uuid(),
+                        "organization_id": organization["organization_id"],
                         "name": f"Supplier {index}",
-                        "external_id": (
-                            f"{organization['external_id']}-SUP-{index:04d}"
-                        ),
+                        "city": "Bengaluru",
+                        "country_code": "IN",
                     }
                 )
 
@@ -103,20 +145,51 @@ class SyntheticCommerceGenerator:
     def generate_customers(
         self,
         organizations: list[dict[str, Any]],
+        customer_segments: list[dict[str, Any]],
     ) -> list[dict[str, Any]]:
         customers = []
 
+        segments_by_organization: dict[
+            str,
+            list[dict[str, Any]],
+        ] = {}
+
+        for segment in customer_segments:
+            segments_by_organization.setdefault(
+                segment["organization_id"],
+                [],
+            ).append(segment)
+
         for organization in organizations:
-            for index in range(1, self.config.customers_per_organization + 1):
+            organization_id = organization["organization_id"]
+            segments = segments_by_organization[organization_id]
+
+            for index in range(
+                1,
+                self.config.customers_per_organization + 1,
+            ):
+                segment = segments[(index - 1) % len(segments)]
+
                 customers.append(
                     {
-                        "id": self._uuid(),
-                        "organization_id": organization["id"],
+                        "customer_id": self._uuid(),
+                        "organization_id": organization_id,
+                        "customer_segment_id": (
+                            segment["customer_segment_id"]
+                        ),
                         "external_customer_id": (
-                            f"{organization['external_id']}-CUS-{index:06d}"
+                            f"ORG-{organization_id[:8]}-CUS-{index:06d}"
                         ),
                         "first_name": f"Customer{index}",
                         "last_name": "Synthetic",
+                        "email": f"customer{index}@synthetic.example",
+                        "country_code": "IN",
+                        "city": "Bengaluru",
+                        "acquisition_channel": (
+                            "ORGANIC"
+                            if index % 2
+                            else "PAID"
+                        ),
                     }
                 )
 
@@ -130,7 +203,10 @@ class SyntheticCommerceGenerator:
     ) -> list[dict[str, Any]]:
         products = []
 
-        brands_by_organization: dict[str, list[dict[str, Any]]] = {}
+        brands_by_organization: dict[
+            str,
+            list[dict[str, Any]],
+        ] = {}
 
         for brand in brands:
             brands_by_organization.setdefault(
@@ -138,7 +214,10 @@ class SyntheticCommerceGenerator:
                 [],
             ).append(brand)
 
-        categories_by_organization: dict[str, list[dict[str, Any]]] = {}
+        categories_by_organization: dict[
+            str,
+            list[dict[str, Any]],
+        ] = {}
 
         for category in categories:
             categories_by_organization.setdefault(
@@ -147,12 +226,16 @@ class SyntheticCommerceGenerator:
             ).append(category)
 
         for organization in organizations:
-            organization_brands = brands_by_organization[organization["id"]]
+            organization_id = organization["organization_id"]
+            organization_brands = brands_by_organization[organization_id]
             organization_categories = categories_by_organization[
-                organization["id"]
+                organization_id
             ]
 
-            for index in range(1, self.config.products_per_organization + 1):
+            for index in range(
+                1,
+                self.config.products_per_organization + 1,
+            ):
                 brand = organization_brands[
                     (index - 1) % len(organization_brands)
                 ]
@@ -163,13 +246,13 @@ class SyntheticCommerceGenerator:
 
                 products.append(
                     {
-                        "id": self._uuid(),
-                        "organization_id": organization["id"],
-                        "brand_id": brand["id"],
-                        "category_id": category["id"],
-                        "name": f"Product {index}",
-                        "external_product_id": (
-                            f"{organization['external_id']}-PROD-{index:06d}"
+                        "product_id": self._uuid(),
+                        "organization_id": organization_id,
+                        "brand_id": brand["brand_id"],
+                        "category_id": category["category_id"],
+                        "product_name": f"Product {index}",
+                        "description": (
+                            f"Synthetic product {index}"
                         ),
                     }
                 )
@@ -183,15 +266,27 @@ class SyntheticCommerceGenerator:
         skus = []
 
         for product in products:
-            for index in range(1, self.config.skus_per_product + 1):
+            for index in range(
+                1,
+                self.config.skus_per_product + 1,
+            ):
+                sku_code = (
+                    f"SKU-{product['product_id'][:8]}-{index:02d}"
+                )
+
                 skus.append(
                     {
-                        "id": self._uuid(),
-                        "product_id": product["id"],
-                        "sku_code": (
-                            f"{product['external_product_id']}-SKU-{index:02d}"
+                        "sku_id": self._uuid(),
+                        "organization_id": product["organization_id"],
+                        "product_id": product["product_id"],
+                        "sku_code": sku_code,
+                        "sku_name": (
+                            f"{product['product_name']} Variant {index}"
                         ),
-                        "name": f"{product['name']} Variant {index}",
+                        "unit_cost": 100.00,
+                        "list_price": 150.00,
+                        "weight_grams": 500.00,
+                        "active": True,
                     }
                 )
 
@@ -199,19 +294,31 @@ class SyntheticCommerceGenerator:
 
     def generate(self) -> dict[str, list[dict[str, Any]]]:
         organizations = self.generate_organizations()
+
+        customer_segments = self.generate_customer_segments(
+            organizations
+        )
+
         brands = self.generate_brands(organizations)
         categories = self.generate_categories(organizations)
         suppliers = self.generate_suppliers(organizations)
-        customers = self.generate_customers(organizations)
+
+        customers = self.generate_customers(
+            organizations,
+            customer_segments,
+        )
+
         products = self.generate_products(
             organizations,
             brands,
             categories,
         )
+
         skus = self.generate_skus(products)
 
         return {
             "organizations": organizations,
+            "customer_segments": customer_segments,
             "brands": brands,
             "categories": categories,
             "suppliers": suppliers,
@@ -223,6 +330,9 @@ class SyntheticCommerceGenerator:
     def summary(self) -> dict[str, int]:
         return {
             "organizations": self.config.organizations,
+            "customer_segments": (
+                self.config.total_customer_segments
+            ),
             "brands": (
                 self.config.organizations
                 * self.config.brands_per_organization
@@ -231,10 +341,7 @@ class SyntheticCommerceGenerator:
                 self.config.organizations
                 * self.config.categories_per_organization
             ),
-            "suppliers": (
-                self.config.organizations
-                * self.config.suppliers_per_organization
-            ),
+            "suppliers": self.config.total_suppliers,
             "customers": self.config.total_customers,
             "products": self.config.total_products,
             "skus": self.config.total_skus,

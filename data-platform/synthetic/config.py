@@ -14,6 +14,7 @@ class GeneratorConfig:
     skus_per_product: int = 2
     customers_per_organization: int = 1_000
     suppliers_per_organization: int = 20
+    customer_segments_per_organization: int = 5
 
     @property
     def total_products(self) -> int:
@@ -26,3 +27,14 @@ class GeneratorConfig:
     @property
     def total_customers(self) -> int:
         return self.organizations * self.customers_per_organization
+
+    @property
+    def total_suppliers(self) -> int:
+        return self.organizations * self.suppliers_per_organization
+
+    @property
+    def total_customer_segments(self) -> int:
+        return (
+            self.organizations
+            * self.customer_segments_per_organization
+        )
