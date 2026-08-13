@@ -15,6 +15,11 @@ class GeneratorConfig:
     customers_per_organization: int = 1_000
     suppliers_per_organization: int = 20
     customer_segments_per_organization: int = 5
+    fulfillment_locations_per_organization: int = 3
+    inventory_snapshot_days: int = 30
+    inventory_movements_per_sku_location: int = 10
+    purchase_orders_per_organization: int = 10
+    purchase_order_items_per_order: int = 3
 
     @property
     def total_products(self) -> int:
@@ -37,4 +42,17 @@ class GeneratorConfig:
         return (
             self.organizations
             * self.customer_segments_per_organization
+        )
+    @property
+    def total_fulfillment_locations(self) -> int:
+        return (
+            self.organizations
+            * self.fulfillment_locations_per_organization
+        )
+
+    @property
+    def total_purchase_orders(self) -> int:
+        return (
+            self.organizations
+            * self.purchase_orders_per_organization
         )
