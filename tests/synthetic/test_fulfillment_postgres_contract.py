@@ -21,23 +21,23 @@ from generator import SyntheticCommerceGenerator
 def connection():
     connection = psycopg2.connect(
         dbname=os.getenv(
-            "TEST_DB_NAME",
+            "POSTGRES_DB",
             "ai_commerce_intelligence",
         ),
         user=os.getenv(
-            "TEST_DB_USER",
+            "POSTGRES_USER",
             "sumedh",
         ),
         password=os.getenv(
-            "TEST_DB_PASSWORD",
+            "POSTGRES_PASSWORD",
             "",
         ),
         host=os.getenv(
-            "TEST_DB_HOST",
+            "POSTGRES_HOST",
             "localhost",
         ),
         port=os.getenv(
-            "TEST_DB_PORT",
+            "POSTGRES_PORT",
             "5432",
         ),
     )
