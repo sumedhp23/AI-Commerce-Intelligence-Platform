@@ -20,6 +20,7 @@ class GeneratorConfig:
     inventory_movements_per_sku_location: int = 10
     purchase_orders_per_organization: int = 10
     purchase_order_items_per_order: int = 3
+    drivers_per_organization: int = 20
 
     @property
     def total_products(self) -> int:
@@ -48,6 +49,13 @@ class GeneratorConfig:
         return (
             self.organizations
             * self.fulfillment_locations_per_organization
+        )
+
+    @property
+    def total_drivers(self) -> int:
+        return (
+            self.organizations
+            * self.drivers_per_organization
         )
 
     @property
