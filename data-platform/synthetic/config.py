@@ -21,6 +21,9 @@ class GeneratorConfig:
     purchase_orders_per_organization: int = 10
     purchase_order_items_per_order: int = 3
     drivers_per_organization: int = 20
+    campaigns_per_organization: int = 5
+    promotions_per_organization: int = 5
+    coupons_per_promotion: int = 3
 
     @property
     def total_products(self) -> int:
@@ -56,6 +59,27 @@ class GeneratorConfig:
         return (
             self.organizations
             * self.drivers_per_organization
+        )
+
+    @property
+    def total_campaigns(self) -> int:
+        return (
+            self.organizations
+            * self.campaigns_per_organization
+        )
+
+    @property
+    def total_promotions(self) -> int:
+        return (
+            self.organizations
+            * self.promotions_per_organization
+        )
+
+    @property
+    def total_coupons(self) -> int:
+        return (
+            self.total_promotions
+            * self.coupons_per_promotion
         )
 
     @property
